@@ -31,6 +31,7 @@ from ssl import SSLError
 import sys
 import tarfile
 import time
+import mimetypes
 
 from boto.s3.connection import S3Connection
 
@@ -199,7 +200,11 @@ def putter(put, put_queue, stat_queue, options):
             if key:
                 headers = {}
                 if options.content_type:
-                    headers['Content-Type'] = options.content_type
+                    if options.content_type == "guess":
+                        headers['Content-Type'] = mimetypes.guess_type(value.path)[0]
+                    else:
+                        headers['Content-Type'] = options.content_type
+
                 content = value.get_content()
                 if options.gzip:
                     headers['Content-Encoding'] = 'gzip'
