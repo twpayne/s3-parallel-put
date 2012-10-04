@@ -62,6 +62,10 @@ calculating the MD5 sum of the content on the client side).
 
 `--secure` and `--insecure` control whether a secure connection is used.
 
+`--grant` applies a
+[Canned ACL](http://docs.amazonwebservices.com/AmazonS3/latest/dev/ACLOverview.html#CannedACL)
+to all files uploaded.
+
 
 Architecture
 ------------

@@ -34,6 +34,7 @@ import time
 import mimetypes
 
 from boto.s3.connection import S3Connection
+from boto.s3.acl import CannedACLStrings
 
 
 DONE_RE = re.compile(r'\AINFO:s3-parallel-put\[putter-\d+\]:\S+\s+->\s+(\S+)\s*\Z')
@@ -214,7 +215,7 @@ def putter(put, put_queue, stat_queue, options):
                     gzip_file.close()
                     content = string_io.getvalue()
                 if not options.dry_run:
-                    key.set_contents_from_string(content, headers, md5=value.md5)
+                    key.set_contents_from_string(content, headers, md5=value.md5, policy=options.grant)
                 logger.info('%s -> %s' % (value.path, key.name))
                 stat_queue.put(dict(size=value.get_size()))
             else:
@@ -266,6 +267,9 @@ def main(argv):
             help='set key prefix')
     group.add_option('--resume', action='append', default=[], metavar='FILENAME',
             help='resume from log file')
+    group.add_option('--grant', metavar='GRANT', default=None, choices=CannedACLStrings,
+            help='A canned ACL policy to be applied to each file uploaded.\nChoices: %s' %
+            ', '.join(CannedACLStrings))
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Logging options')
     group.add_option('--log-filename', metavar='FILENAME',
