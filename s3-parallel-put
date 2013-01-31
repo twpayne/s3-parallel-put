@@ -199,7 +199,7 @@ def putter(put, put_queue, stat_queue, options):
                 bucket = connection.get_bucket(options.bucket)
             key = put(bucket, key_name, value)
             if key:
-                headers = {}
+                headers = dict(tuple(header.split(':', 1)) for header in options.headers)
                 if options.content_type:
                     if options.content_type == "guess":
                         headers['Content-Type'] = mimetypes.guess_type(value.path)[0]
@@ -258,7 +258,7 @@ def main(argv):
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Put options')
     group.add_option('--content-type', metavar='CONTENT-TYPE',
-            help='set content type')
+            help='set content type, set to "guess" to guess based on file name')
     group.add_option('--gzip', action='store_true',
             help='gzip values and set content encoding')
     group.add_option('--put', choices=('add', 'stupid', 'update'), default='update', metavar='MODE',
@@ -270,6 +270,8 @@ def main(argv):
     group.add_option('--grant', metavar='GRANT', default=None, choices=CannedACLStrings,
             help='A canned ACL policy to be applied to each file uploaded.\nChoices: %s' %
             ', '.join(CannedACLStrings))
+    group.add_option('--header', metavar='HEADER:VALUE', dest='headers', action='append',
+                     help='extra headers to add to the file, can be specified multiple times')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Logging options')
     group.add_option('--log-filename', metavar='FILENAME',

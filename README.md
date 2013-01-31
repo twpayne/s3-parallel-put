@@ -66,6 +66,8 @@ calculating the MD5 sum of the content on the client side).
 [Canned ACL](http://docs.amazonwebservices.com/AmazonS3/latest/dev/ACLOverview.html#CannedACL)
 to all files uploaded.
 
+`--header=HEADER:VALUE` adds an arbitrary header to the S3 file. This
+option can be specified multiple times.
 
 Architecture
 ------------
