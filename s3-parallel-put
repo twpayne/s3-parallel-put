@@ -115,7 +115,7 @@ def walk_filesystem(source, options):
                 yield (key_name, dict(path=path))
     elif os.path.isfile(source):
         key_name = os.path.normpath(os.path.join(options.prefix, source))
-        yield (key_name, dict(path=path))
+        yield (key_name, dict(path=source))
 
 
 def walk_tar(source, options):
