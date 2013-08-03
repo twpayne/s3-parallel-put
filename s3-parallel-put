@@ -20,7 +20,6 @@ try:
 except ImportError:
     from StringIO import StringIO
 from gzip import GzipFile
-import hashlib
 from itertools import chain, imap, islice
 import logging
 from multiprocessing import JoinableQueue, Process, current_process
@@ -35,6 +34,7 @@ import mimetypes
 
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
+from boto.utils import compute_md5
 
 
 DONE_RE = re.compile(r'\AINFO:s3-parallel-put\[putter-\d+\]:\S+\s+->\s+(\S+)\s*\Z')
@@ -88,9 +88,9 @@ class Value(object):
                 assert False
         return self.content
 
-    def get_md5(self):
+    def calculate_md5(self):
         if self.md5 is None:
-            self.md5 = hashlib.md5(self.get_content()).hexdigest()
+            self.md5 = compute_md5(StringIO(self.get_content()))
         return self.md5
 
     def get_size(self):
@@ -176,10 +176,13 @@ def put_update(bucket, key_name, value):
     if key is None:
         return bucket.new_key(key_name)
     else:
-        if key.etag == '"%s"' % value.get_md5():
+        # Boto's md5 function actually returns 3-tuple: (hexdigest, base64, size)
+        value.calculate_md5()
+        if key.etag == '"%s"' % value.md5[0]:
             return None
         else:
             return key
+
 
 def putter(put, put_queue, stat_queue, options):
     logger = logging.getLogger('%s[putter-%d]' % (os.path.basename(sys.argv[0]), current_process().pid))
