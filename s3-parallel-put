@@ -213,6 +213,7 @@ def putter(put, put_queue, stat_queue, options):
                         headers['Content-Type'] = options.content_type
 
                 content = value.get_content()
+                md5 = value.md5
                 if options.gzip:
                     headers['Content-Encoding'] = 'gzip'
                     string_io = StringIO()
@@ -220,8 +221,9 @@ def putter(put, put_queue, stat_queue, options):
                     gzip_file.write(content)
                     gzip_file.close()
                     content = string_io.getvalue()
+                    md5 = compute_md5(StringIO(content))
                 if not options.dry_run:
-                    key.set_contents_from_string(content, headers, md5=value.md5, policy=options.grant)
+                    key.set_contents_from_string(content, headers, md5=md5, policy=options.grant)
                 logger.info('%s -> %s' % (value.path, key.name))
                 stat_queue.put(dict(size=value.get_size()))
             else:
