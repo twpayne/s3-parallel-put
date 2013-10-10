@@ -197,7 +197,7 @@ def putter(put, put_queue, stat_queue, options):
         value = Value(file_object_cache, **value_kwargs)
         try:
             if connection is None:
-                connection = S3Connection(is_secure=options.secure)
+                connection = S3Connection(is_secure=options.secure, host=options.host)
             if bucket is None:
                 bucket = connection.get_bucket(options.bucket)
             key = put(bucket, key_name, value)
@@ -255,6 +255,8 @@ def main(argv):
     group = OptionGroup(parser, 'S3 options')
     group.add_option('--bucket', metavar='BUCKET',
             help='set bucket')
+    group.add_option('--host', default=None,
+            help='set AWS host name')
     group.add_option('--insecure', action='store_false', dest='secure',
             help='use insecure connection')
     group.add_option('--secure', action='store_true', default=True, dest='secure',
