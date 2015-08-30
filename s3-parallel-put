@@ -378,13 +378,7 @@ def main(argv):
     if not options.bucket:
         logger.error('missing bucket')
         return 1
-    connection = S3Connection(is_secure=options.secure, Location=USWest2)
-    # connection = boto.s3.connect_to_region(options.region,
-    #   aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-    #   aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-    #   is_secure=options.secure,
-    #   calling_format = boto.s3.connection.OrdinaryCallingFormat(),
-    #   )
+    connection = S3Connection(is_secure=options.secure, Location=Location.USWest2)
     bucket = connection.get_bucket(options.bucket)
     del bucket
     del connection
