@@ -1,6 +1,7 @@
 s3-parallel-put  Parallel uploads to Amazon AWS S3
 ==================================================
 
+THIS IS A FORK FOR https://github.com/twpayne/s3-parallel-put/pull/23 PR #23 to support regionalized buckets.
 s3-parallel-put speeds the uploading of many small keys to Amazon AWS S3 by
 executing multiple PUTs in parallel.
 
