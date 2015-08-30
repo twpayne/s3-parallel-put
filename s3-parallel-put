@@ -40,7 +40,7 @@ import tarfile
 import time
 import mimetypes
 
-from boto.s3.connection.Location import Location
+from boto.s3.connection import Location
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
 from boto.utils import compute_md5
