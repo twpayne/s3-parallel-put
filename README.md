@@ -38,56 +38,50 @@ s3-parallel-put --bucket=BUCKET --prefix=PREFIX SOURCE
 Keys are computed by combining `PREFIX` with the path of the file, starting
 from `SOURCE`.  Values are file contents.
 
-There are a few other options:
+Options:
+* `-h, --help` — show this help message and exit
 
-`--dry-run` causes the program to print what it would do, but not to upload
-any files.  It is strongly recommended that you test the program with this
-option before transferring any real data.
-
-`--limit=N` causes the program to upload no more than N files.  Combined
-with `--dry-run`, this is also useful for testing.
-
-`--put=MODE` sets the heuristic used for deciding whether to upload a file
-or not.  Valid modes are:
-
-* `add` set the key's content if the key is not already present.
-
-* `stupid` always set the key's content.
-
-* `update` set the key's content if the key is not already present and its
+* **S3 options:**
+  * `--bucket=BUCKET` — set bucket
+  * `--bucket_region=BUCKET_REGION` — set bucket region if not in us-east-1 (default new bucket region)
+  * `--host=HOST` — set AWS host name
+  * `--secure` and `--insecure` control whether a secure connection is used
+  
+* **Source options:**
+  * `--walk=MODE` — set walk mode (filesystem or tar)
+  * `--exclude=PATTERN` — exclude files matching PATTERN
+  * `--include=PATTERN` — don't exclude files matching PATTERN
+  
+* **Put options:**
+  * `--content-type=CONTENT-TYPE` — sets the `Content-Type` header, set to "guess" to guess based on file name or "magic" to guess by filename and libmagic
+  * `--gzip` — compresses common text files and sets the `Content-Encoding` header to `gzip`
+  * `--gzip-type=GZIP_TYPE` — if `--gzip` is set, sets what content-type to gzip, defaults to a list of known text content types, "all" will gzip everything. Specify multiple times for multiple content types (eg.`--gzip-type=guess --gzip-type="image/svg+xml"`) [default: "guess"]
+  * `--put=MODE` — sets the heuristic used for deciding whether to upload a file or not.  Valid modes are:
+    * `add` set the key's content if the key is not already present.
+    * `stupid` always set the key's content.
+    * `update` set the key's content if the key is not already present and its
   content has changed (as determined by its ETag).
+    * `copy`<br>
+    The default heuristic is `update`.  If you know that the keys are not already present then `stupid` is fastest (it avoids an extra HEAD request for each key).  If you know that some keys are already present and that they have the correct values, then `add` is faster than `update` (it avoids calculating the MD5 sum of the content on the client side).
+  
+  
+  * `--prefix=PREFIX` — set key prefix
+  * `--resume=FILENAME` — resume from log file
+  * `--grant=GRANT` — A [Canned ACL](http://docs.amazonwebservices.com/AmazonS3/latest/dev/ACLOverview.html#CannedACL) policy to be applied to each file uploaded. Choices: `private`, `public-read`, `public-read-write`, `authenticated-read`, `bucket-owner-read`, `bucket-owner-full-control`, `log-delivery-write`
+  * `--header=HEADER:VALUE` — adds an arbitrary header to the S3 file. This option can be specified multiple times.
+  * `--encrypt-key` — use server side encryption
 
-The default heuristic is `update`.  If you know that the keys are not
-already present then `stupid` is fastest (it avoids an extra HEAD request
-for each key).  If you know that some keys are already present and that they
-have the correct values, then `add` is faster than `update` (it avoids
-calculating the MD5 sum of the content on the client side).
+* **Logging options:**
+  * `--log-filename=FILENAME` — set log filename
+  * `-q, --quiet` — less output
+  * `-v, --verbose` — more output to be printed, including progress of individual files
 
-`--content-type=CONTENT-TYPE` sets the `Content-Type` header. 
-(accepted parameter `guess`), (eg. `--content-type=guess`)
+* **Debug and performance tuning options:**
+  * `--dry-run` — don't write to S3. Causes the program to print what it would do, but not to upload any files. It is strongly recommended that you test the program with this option before transferring any real data.
+  * `--limit=N` — set maximum number of keys to put. Causes the program to upload no more than N files.  Combined
+with `--dry-run`, this is also useful for testing.
+  * `--processes=N` —  sets the number of parallel upload processes
 
-`--gzip` compresses common text files and sets the `Content-Encoding` header to
-`gzip`.
-
-`--gzip-type=CONTENT-TYPE` can be used multiple times to specify what content
-types should be gzipped.  To extend the existing set, specify `guess` too, (eg.
-`--gzip-type=guess --gzip-type="image/svg+xml"`).  To gzip everything, specify
-`all`, (eg. `--gzip-type=all`).
-
-`--processes=N` sets the number of parallel upload processes.
-
-`--verbose` causes more output to be printed, including progress of individual files.
-
-`--quiet` causes less output.
-
-`--secure` and `--insecure` control whether a secure connection is used.
-
-`--grant` applies a
-[Canned ACL](http://docs.amazonwebservices.com/AmazonS3/latest/dev/ACLOverview.html#CannedACL)
-to all files uploaded.
-
-`--header=HEADER:VALUE` adds an arbitrary header to the S3 file. This
-option can be specified multiple times.
 
 Architecture
 ------------
