@@ -39,7 +39,7 @@ Keys are computed by combining `PREFIX` with the path of the file, starting
 from `SOURCE`.  Values are file contents.
 
 #### Options:
-* `-h, --help` — show this help message and exit
+* `-h, --help` — show help message
 
 ##### S3 options:
 * `--bucket=BUCKET` — set bucket
@@ -102,9 +102,6 @@ Bugs
 
 To Do
 -----
-
-* Update documentation.
-
 * Automatically parallelize uploads of large files by splitting into chunks.
 
 
