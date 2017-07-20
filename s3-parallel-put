@@ -290,7 +290,7 @@ def putter(put, put_queue, stat_queue, options):
                     if options.content_type:
                         if options.content_type == 'guess':
                             content_type = mimetypes.guess_type(value.path)[0]
-                        if options.content_type == "magic":
+                        elif options.content_type == 'magic':
                             content_type = mimetypes.guess_type(value.path)[0]
                             if content_type is None:
                                 content_type = magic.from_file(value.path, mime=True)
