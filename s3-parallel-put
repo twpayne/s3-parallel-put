@@ -130,15 +130,16 @@ class Value(object):
         return self.bucket_name is None
 
 
-def dolog(options):
+def dolog(options, value, should_gzip, key):
+    logger = logging.getLogger('%s[walker-%d]' % (os.path.basename(sys.argv[0]), current_process().pid))
     if options.dry_run and options.rm_src:
-        message="Would upload+delete:"
+        message = "Would upload+delete:"
     elif options.dry_run:
-        message="Would upload:"
+        message = "Would upload:"
     elif options.rm_src and not options.dry_run:
-        message="Uploaded+deleted:"
+        message = "Uploaded+deleted:"
     elif not options.dry_run:
-        message="Uploaded:"
+        message = "Uploaded:"
 
     logger.info("{} {} -{} {}".format(message, value.path, 'z' if should_gzip else '>', key.name))
 
@@ -333,7 +334,7 @@ def putter(put, put_queue, stat_queue, options):
                             if os.path.isfile(value.path):
                                 os.remove(value.path)
                 stat_queue.put(dict(size=value.get_size()))
-                dolog(options)
+                dolog(options, value, should_gzip, key)
             else:
                 logger.info("Skipping: {} -{} {}".format(value.path, 'z' if should_gzip else '>', key.name))
         except SSLError as exc:
