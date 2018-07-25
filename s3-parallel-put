@@ -130,6 +130,17 @@ class Value(object):
         return self.bucket_name is None
 
 
+def dolog(options):
+    if options.dry_run and options.rm_src:
+        logger.info("Would upload+delete {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+    elif options.dry_run:
+        logger.info("Would upload {} -{} {}".format(value.path, 'z' if should_gzip else '>', key.name))
+    elif options.rm_src and not options.dry_run:
+        logger.info("Uploaded+deleted {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+    elif not options.dry_run:
+        logger.info("Skipping: {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+
+
 def excluded(pathname, options):
     for glob in options.include:
         if fnmatch(pathname, glob):
@@ -316,11 +327,11 @@ def putter(put, put_queue, stat_queue, options):
                     if not options.dry_run:
                         key.set_contents_from_string(content, headers, md5=md5, policy=options.grant,
                                                      encrypt_key=options.encrypt_key)
-                logger.info('%s %s> %s' % (
-                    value.path, 'z' if should_gzip else '-', key.name))
+                        if options.rm_src:
+                            if os.path.isfile(value.path):
+                                os.remove(value.path)
                 stat_queue.put(dict(size=value.get_size()))
-            else:
-                logger.info('skipping %s -> %s' % (value.path, key_name))
+                dolog(options)
         except SSLError as exc:
             logger.error('%s -> %s (%s)' % (value.path, key_name, exc))
             put_queue.put(args)
@@ -367,6 +378,7 @@ def main(argv):
                      help='exclude files matching PATTERN')
     group.add_option('--include', action='append', default=[], metavar='PATTERN',
                      help='don\'t exclude files matching PATTERN')
+    group.add_option('--rm-src', action='store_true', help='remove source file')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Put options')
     group.add_option('--content-type', default='guess', metavar='CONTENT-TYPE',
@@ -402,10 +414,8 @@ def main(argv):
                      help='more output')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Debug and performance tuning options')
-    group.add_option('--dry-run', action='store_true',
-                     help='don\'t write to S3')
-    group.add_option('--limit', metavar='N', type=int,
-                     help='set maximum number of keys to put')
+    group.add_option('--dry-run', action='store_true', help='don\'t write to S3')
+    group.add_option('--limit', metavar='N', type=int, help='set maximum number of keys to put')
     group.add_option('--processes', default=8, metavar='PROCESSES', type=int,
                      help='set number of putter processes')
     parser.add_option_group(group)
