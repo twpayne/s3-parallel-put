@@ -51,6 +51,7 @@ from `SOURCE`.  Values are file contents.
 * `--walk=MODE` — set walk mode (filesystem or tar)
 * `--exclude=PATTERN` — exclude files matching PATTERN
 * `--include=PATTERN` — don't exclude files matching PATTERN
+* `--rm-src` -- remove the source file from disk
   
 ##### Put options:
 * `--content-type=CONTENT-TYPE` — sets the `Content-Type` header, set to "guess" to guess based on file name or "magic" to guess by filename and libmagic
