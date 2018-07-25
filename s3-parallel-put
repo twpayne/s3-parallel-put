@@ -39,14 +39,13 @@ from ssl import SSLError
 import sys
 import tarfile
 import time
-import magic #python-magic
+import magic  # python-magic
 import mimetypes
 
 import boto
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
 from boto.utils import compute_md5
-
 
 DONE_RE = re.compile(r'\AINFO:s3-parallel-put\[putter-\d+\]:\S+\s+->\s+(\S+)\s*\Z')
 
@@ -88,7 +87,8 @@ class FileObjectCache(object):
 
 class Value(object):
 
-    def __init__(self, file_object_cache, content=None, filename=None, md5=None, offset=None, path=None, size=None, bucket_name=None):
+    def __init__(self, file_object_cache, content=None, filename=None, md5=None, offset=None, path=None, size=None,
+                 bucket_name=None):
         self.file_object_cache = file_object_cache
         self.content = content
         self.filename = filename
@@ -129,16 +129,32 @@ class Value(object):
     def should_copy_content(self):
         return self.bucket_name is None
 
+
+def dolog(options, value, should_gzip, key):
+    logger = logging.getLogger('%s[walker-%d]' % (os.path.basename(sys.argv[0]), current_process().pid))
+    if options.dry_run and options.rm_src:
+        message = "Would upload+delete:"
+    elif options.dry_run:
+        message = "Would upload:"
+    elif options.rm_src and not options.dry_run:
+        message = "Uploaded+deleted:"
+    elif not options.dry_run:
+        message = "Uploaded:"
+
+    logger.info("{} {} -{} {}".format(message, value.path, 'z' if should_gzip else '>', key.name))
+
+
 def excluded(pathname, options):
-  for glob in options.include:
-    if fnmatch(pathname, glob):
-      return False
+    for glob in options.include:
+        if fnmatch(pathname, glob):
+            return False
 
-  for glob in options.exclude:
-    if fnmatch(pathname, glob):
-      return True
+    for glob in options.exclude:
+        if fnmatch(pathname, glob):
+            return True
 
-  return False
+    return False
+
 
 def walk_filesystem(source, options):
     if os.path.isdir(source):
@@ -301,8 +317,8 @@ def putter(put, put_queue, stat_queue, options):
                     content = value.get_content()
                     md5 = value.md5
                     should_gzip = options.gzip and (
-                        content_type and content_type in gzip_content_types or
-                        gzip_content_types == GZIP_ALL)
+                            content_type and content_type in gzip_content_types or
+                            gzip_content_types == GZIP_ALL)
                     if should_gzip:
                         headers['Content-Encoding'] = 'gzip'
                         string_io = StringIO()
@@ -312,12 +328,18 @@ def putter(put, put_queue, stat_queue, options):
                         content = string_io.getvalue()
                         md5 = compute_md5(StringIO(content))
                     if not options.dry_run:
-                        key.set_contents_from_string(content, headers, md5=md5, policy=options.grant, encrypt_key=options.encrypt_key)
-                logger.info('%s %s> %s' % (
-                    value.path, 'z' if should_gzip else '-', key.name))
+                        key.set_contents_from_string(content, headers, md5=md5, policy=options.grant,
+                                                     encrypt_key=options.encrypt_key)
+                        if options.rm_src:
+                            if os.path.isfile(value.path):
+                                os.remove(value.path)
                 stat_queue.put(dict(size=value.get_size()))
+                dolog(options, value, should_gzip, key)
             else:
-                logger.info('skipping %s -> %s' % (value.path, key_name))
+                if options.rm_src:
+                    if os.path.isfile(value.path):
+                        os.remove(value.path)
+                logger.info("{} {} -{} {}".format('Deleting:' if options.rm_src else 'Skipping:', value.path, 'z' if should_gzip else '>', key_name))
         except SSLError as exc:
             logger.error('%s -> %s (%s)' % (value.path, key_name, exc))
             put_queue.put(args)
@@ -339,71 +361,71 @@ def statter(stat_queue, start, options):
         total_size += kwargs.get('size', 0)
         stat_queue.task_done()
     duration = time.time() - start
-    logger.info('put %d bytes in %d files in %.1f seconds (%d bytes/s, %.1f files/s)' % (total_size, count, duration, total_size / duration, count / duration))
+    logger.info('put %d bytes in %d files in %.1f seconds (%d bytes/s, %.1f files/s)' % (
+        total_size, count, duration, total_size / duration, count / duration))
 
 
 def main(argv):
     parser = OptionParser()
     group = OptionGroup(parser, 'S3 options')
     group.add_option('--bucket', metavar='BUCKET',
-            help='set bucket')
+                     help='set bucket')
     group.add_option('--bucket_region', default='us-east-1',
-            help='set bucket region if not in us-east-1 (default new bucket region)')
+                     help='set bucket region if not in us-east-1 (default new bucket region)')
     group.add_option('--host', default='s3.amazonaws.com',
-            help='set AWS host name')
+                     help='set AWS host name')
     group.add_option('--insecure', action='store_false', dest='secure',
-            help='use insecure connection')
+                     help='use insecure connection')
     group.add_option('--secure', action='store_true', default=True, dest='secure',
-            help='use secure connection')
+                     help='use secure connection')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Source options')
     group.add_option('--walk', choices=('filesystem', 'tar', 's3'), default='filesystem', metavar='MODE',
-            help='set walk mode (filesystem or tar)')
-    group.add_option('--exclude', action='append', default=[], metavar='PATTERN', 
-            help='exclude files matching PATTERN')
-    group.add_option('--include', action='append', default=[], metavar='PATTERN', 
-            help='don\'t exclude files matching PATTERN')
+                     help='set walk mode (filesystem or tar)')
+    group.add_option('--exclude', action='append', default=[], metavar='PATTERN',
+                     help='exclude files matching PATTERN')
+    group.add_option('--include', action='append', default=[], metavar='PATTERN',
+                     help='don\'t exclude files matching PATTERN')
+    group.add_option('--rm-src', action='store_true', help='remove source file')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Put options')
     group.add_option('--content-type', default='guess', metavar='CONTENT-TYPE',
-            help='set content type, set to "guess" to guess based on file name '
-            'or "magic" to guess by filename and libmagic.')
+                     help='set content type, set to "guess" to guess based on file name '
+                          'or "magic" to guess by filename and libmagic.')
     group.add_option('--gzip', action='store_true',
-            help='gzip values and set content encoding')
+                     help='gzip values and set content encoding')
     group.add_option('--gzip-type', action='append', default=[],
-            help='if --gzip is set, sets what content-type to gzip, defaults '
-            'to a list of known text content types, "all" will gzip everything.'
-            ' Specify multiple times for multiple content types. '
-            '[default: "guess"]')
+                     help='if --gzip is set, sets what content-type to gzip, defaults '
+                          'to a list of known text content types, "all" will gzip everything.'
+                          ' Specify multiple times for multiple content types. '
+                          '[default: "guess"]')
     group.add_option('--put', choices=('add', 'stupid', 'update', 'copy'), default='update', metavar='MODE',
-            help='set put mode (add, stupid, copy or update)')
+                     help='set put mode (add, stupid, copy or update)')
     group.add_option('--prefix', default='', metavar='PREFIX',
-            help='set key prefix')
+                     help='set key prefix')
     group.add_option('--resume', action='append', default=[], metavar='FILENAME',
-            help='resume from log file')
+                     help='resume from log file')
     group.add_option('--grant', metavar='GRANT', default=None, choices=CannedACLStrings,
-            help='A canned ACL policy to be applied to each file uploaded.\nChoices: %s' %
-            ', '.join(CannedACLStrings))
+                     help='A canned ACL policy to be applied to each file uploaded.\nChoices: %s' %
+                          ', '.join(CannedACLStrings))
     group.add_option('--header', metavar='HEADER:VALUE', dest='headers', action='append',
                      help='extra headers to add to the file, can be specified multiple times')
     group.add_option('--encrypt-key', action='store_true', default=False, dest='encrypt_key',
-            help='use server side encryption')
+                     help='use server side encryption')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Logging options')
     group.add_option('--log-filename', metavar='FILENAME',
-            help='set log filename')
+                     help='set log filename')
     group.add_option('--quiet', '-q', action='count', default=0,
-            help='less output')
+                     help='less output')
     group.add_option('--verbose', '-v', action='count', default=0,
-            help='more output')
+                     help='more output')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Debug and performance tuning options')
-    group.add_option('--dry-run', action='store_true',
-            help='don\'t write to S3')
-    group.add_option('--limit', metavar='N', type=int,
-            help='set maximum number of keys to put')
+    group.add_option('--dry-run', action='store_true', help='don\'t write to S3')
+    group.add_option('--limit', metavar='N', type=int, help='set maximum number of keys to put')
     group.add_option('--processes', default=8, metavar='PROCESSES', type=int,
-            help='set number of putter processes')
+                     help='set number of putter processes')
     parser.add_option_group(group)
     options, args = parser.parse_args(argv[1:])
     logging.basicConfig(filename=options.log_filename, level=logging.INFO + 10 * (options.quiet - options.verbose))
@@ -417,11 +439,11 @@ def main(argv):
     if not options.bucket_region:
         options.bucket_region = 'us-east-1'
     connection = boto.s3.connect_to_region(options.bucket_region,
-       aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-       aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-       is_secure=True,
-       calling_format = boto.s3.connection.OrdinaryCallingFormat(),
-       )
+                                           aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                                           aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                                           is_secure=True,
+                                           calling_format=boto.s3.connection.OrdinaryCallingFormat(),
+                                           )
     bucket = connection.get_bucket(options.bucket)
     del bucket
     del connection
@@ -432,7 +454,8 @@ def main(argv):
     walker_process = Process(target=walker, args=(walk, put_queue, args, options))
     walker_process.start()
     put = {'add': put_add, 'stupid': put_stupid, 'update': put_update, 'copy': put_copy}[options.put]
-    putter_processes = list(islice(repeatedly(Process, target=putter, args=(put, put_queue, stat_queue, options)), options.processes))
+    putter_processes = list(
+        islice(repeatedly(Process, target=putter, args=(put, put_queue, stat_queue, options)), options.processes))
     for putter_process in putter_processes:
         putter_process.start()
     statter_process = Process(target=statter, args=(stat_queue, start, options))
