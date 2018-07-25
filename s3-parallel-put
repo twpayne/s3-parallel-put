@@ -132,13 +132,15 @@ class Value(object):
 
 def dolog(options):
     if options.dry_run and options.rm_src:
-        logger.info("Would upload+delete {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+        message="Would upload+delete"
     elif options.dry_run:
-        logger.info("Would upload {} -{} {}".format(value.path, 'z' if should_gzip else '>', key.name))
+        message="Would upload"
     elif options.rm_src and not options.dry_run:
-        logger.info("Uploaded+deleted {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+        message="Uploaded+deleted"
     elif not options.dry_run:
-        logger.info("Skipping: {} -{} to: {}".format(value.path, 'z' if should_gzip else '>', key.name))
+        message="Uploaded"
+
+    logger.info("{} {} -{} {}".format(message, value.path, 'z' if should_gzip else '>', key.name))
 
 
 def excluded(pathname, options):
