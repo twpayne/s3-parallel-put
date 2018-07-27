@@ -422,6 +422,11 @@ def main(argv):
        is_secure=True,
        calling_format = boto.s3.connection.OrdinaryCallingFormat(),
        )
+    
+    import ssl
+    if hasattr(ssl, '_create_unverified_context'):
+         ssl._create_default_https_context = ssl._create_unverified_context
+            
     bucket = connection.get_bucket(options.bucket)
     del bucket
     del connection
