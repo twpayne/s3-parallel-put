@@ -46,6 +46,7 @@ import boto
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
 from boto.utils import compute_md5
+from boto.exception import BotoServerError
 
 
 DONE_RE = re.compile(r'\AINFO:s3-parallel-put\[putter-\d+\]:\S+\s+->\s+(\S+)\s*\Z')
