@@ -324,6 +324,9 @@ def putter(put, put_queue, stat_queue, options):
             connection, bucket = None, None
         except IOError as exc:
             logger.error('%s -> %s (%s)' % (value.path, key_name, exc))
+        except BotoServerError as exc:
+            logger.error('%s -> %s (%s)' % (value.path, key_name, exc))
+            put_queue.put(args)
         put_queue.task_done()
 
 
