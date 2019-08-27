@@ -39,15 +39,17 @@ from ssl import SSLError
 import sys
 import tarfile
 import time
+from datetime import datetime
 import magic #python-magic
 import mimetypes
-
+import time
 import boto
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
 from boto.utils import compute_md5
 from boto.exception import BotoServerError
 
+current_time = time.time()
 
 DONE_RE = re.compile(r'\AINFO:s3-parallel-put\[putter-\d+\]:\S+\s+->\s+(\S+)\s*\Z')
 
@@ -138,6 +140,14 @@ def excluded(pathname, options):
   for glob in options.exclude:
     if fnmatch(pathname, glob):
       return True
+
+  if options.ignore_files_older_than_days > 0:
+    if os.path.isdir(pathname):
+      creation_time = os.path.getctime(pathname)
+      if (current_time - creation_time) // (24 * 3600) >= options.ignore_files_older_than_days:
+        logger = logging.getLogger('%s[walker-%d]' % (os.path.basename(sys.argv[0]), current_process().pid))
+        logger.info('ignore file %s because crtime=%s older than %s days' % (pathname, datetime.fromtimestamp(creation_time).strftime("%d.%m.%Y, %H:%M:%S"), options.ignore_files_older_than_days))
+        return True
 
   return False
 
@@ -367,6 +377,8 @@ def main(argv):
             help='exclude files matching PATTERN')
     group.add_option('--include', action='append', default=[], metavar='PATTERN', 
             help='don\'t exclude files matching PATTERN')
+    group.add_option('--ignore-files-older-than-days', default=0, type=int,
+            help='ignore files older than x days')
     parser.add_option_group(group)
     group = OptionGroup(parser, 'Put options')
     group.add_option('--content-type', default='guess', metavar='CONTENT-TYPE',
