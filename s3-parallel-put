@@ -286,7 +286,7 @@ def putter(put, put_queue, stat_queue, options):
         should_gzip = False
         try:
             if connection is None:
-                connection = S3Connection(is_secure=options.secure, host=options.host)
+                connection = boto.s3.connect_to_region(options.bucket_region,is_secure=options.secure)
             if bucket is None:
                 bucket = connection.get_bucket(options.bucket)
             key = put(bucket, key_name, value)
@@ -373,9 +373,9 @@ def main(argv):
     group = OptionGroup(parser, 'Source options')
     group.add_option('--walk', choices=('filesystem', 'tar', 's3'), default='filesystem', metavar='MODE',
             help='set walk mode (filesystem or tar)')
-    group.add_option('--exclude', action='append', default=[], metavar='PATTERN', 
+    group.add_option('--exclude', action='append', default=[], metavar='PATTERN',
             help='exclude files matching PATTERN')
-    group.add_option('--include', action='append', default=[], metavar='PATTERN', 
+    group.add_option('--include', action='append', default=[], metavar='PATTERN',
             help='don\'t exclude files matching PATTERN')
     group.add_option('--ignore-files-older-than-days', default=0, type=int,
             help='ignore files older than x days')
@@ -437,13 +437,12 @@ def main(argv):
        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
        is_secure=True,
        host=options.host,
-       calling_format = boto.s3.connection.OrdinaryCallingFormat(),
        )
-    
+
     import ssl
     if hasattr(ssl, '_create_unverified_context'):
          ssl._create_default_https_context = ssl._create_unverified_context
-            
+
     bucket = connection.get_bucket(options.bucket)
     del bucket
     del connection
