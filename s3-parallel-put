@@ -432,13 +432,21 @@ def main(argv):
         return 1
     if not options.bucket_region:
         options.bucket_region = 'us-east-1'
-    connection = boto.s3.connect_to_region(options.bucket_region,
-       aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-       aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-       is_secure=True,
-       host=options.host,
-       calling_format = boto.s3.connection.OrdinaryCallingFormat(),
-       )
+    if 'AWS_SECURITY_TOKEN' in os.environ:
+        connection = boto.s3.connect_to_region(options.bucket_region,
+          security_token=os.environ.get('AWS_SECURITY_TOKEN'),
+          is_secure=True,
+          host=options.host,
+          calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        )
+    else:
+        connection = boto.s3.connect_to_region(options.bucket_region,
+          aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+          aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+          is_secure=True,
+          host=options.host,
+          calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        )
     
     import ssl
     if hasattr(ssl, '_create_unverified_context'):
